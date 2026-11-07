@@ -51,3 +51,7 @@ ctrl+v script-message-to copyPasteTime pasteTime
 
 Note: these example keybinds may conflict with your existing keybinds or [MPV's defaults](https://github.com/mpv-player/mpv/blob/master/etc/input.conf).
 
+## Tests
+
+Run with `nix flake check` for unit and integration tests. The integration tests use a clipboard double (not your system clipboard), the mpv package, and a temporary sparse media file.
+
