@@ -14,6 +14,10 @@ end
 
 local function copyTime()
     local time_pos = mp.get_property_number("time-pos")
+    if time_pos == nil then
+        mp.osd_message("Current time is unavailable.")
+        return
+    end
     local minutes, remainder = divmod(time_pos, 60)
     local hours, minutes = divmod(minutes, 60)
     local seconds = math.floor(remainder)
@@ -24,6 +28,10 @@ end
 
 local function copyFrame()
     local frame_number = mp.get_property_number("estimated-frame-number")
+    if frame_number == nil then
+        mp.osd_message("Estimated frame number is unavailable.")
+        return
+    end
     local frame_string = string.format("%d", frame_number)
     setClipboard(frame_string)
 end

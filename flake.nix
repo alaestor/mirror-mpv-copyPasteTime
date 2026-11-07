@@ -42,6 +42,13 @@
           };
         };
       in {
+        checks.unit = pkgs.runCommand "mpv-copyPasteTime-unit-tests" {
+          nativeBuildInputs = [ pkgs.luajit ];
+        } ''
+          cd ${./.}
+          luajit tests/unit.lua
+          touch "$out"
+        '';
         packages.mpv-clipboard = clipboard;
         packages.mpv-copyPasteTime = pkgs.stdenvNoCC.mkDerivation {
           pname = "mpv-copyPasteTime";
