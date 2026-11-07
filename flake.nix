@@ -80,7 +80,7 @@
         packages.mpv-clipboard = clipboard;
         packages.mpv-copyPasteTime = pkgs.stdenvNoCC.mkDerivation {
           pname = "mpv-copyPasteTime";
-          version = "0.1.0";
+          version = "0.1.1";
           src = ./.;
           dontUnpack = true;
           installPhase = ''
