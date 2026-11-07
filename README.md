@@ -42,7 +42,7 @@ mp.add_key_binding("ctrl+v", "pasteTime", pasteTime)
 
 or
 
-2. Add your preferred keybinds to your `inputs.conf` file. e.g.
+2. Add your preferred keybinds to your `input.conf` file. e.g.
 ```
 shift+c script-message-to copyPasteTime copyFrame
 ctrl+c script-message-to copyPasteTime copyTime
