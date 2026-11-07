@@ -1,8 +1,9 @@
 require 'mp'
 
 local function setClipboard(text)
-   if mp.commandv("script-message", "set-clipboard", text) then
-        mp.osd_message(string.format("Copied to Clipboard: %s", text))
+    if mp.commandv("script-message-to", "clipboard", "set-clipboard", text) then
+        -- mpv-clipboard does not acknowledge operating-system write completion.
+        mp.osd_message(string.format("Clipboard copy requested: %s", text))
     else
         mp.osd_message(string.format("Failed to copy '%s'.\nAre you missing `mpv-clipboard`?", text))
     end
@@ -33,7 +34,13 @@ local function copyFrame()
     setClipboard(frame_string)
 end
 
+local clipboard_timer
+
 local function _pasteTime_impl(text)
+    if clipboard_timer then
+        clipboard_timer:kill()
+        clipboard_timer = nil
+    end
     -- this is a callback intended to recieve text from mpv-clipboard's "get-clipboard"
     timestamp = text:match("%d?%d?:?%d?%d?:?%d?%d%.?%d*")
     if timestamp ~= nil then
@@ -43,7 +50,14 @@ local function _pasteTime_impl(text)
 end
 
 local function pasteTime()
-    if not mp.commandv("script-message", "get-clipboard", "_pasteTime_impl") then
+    if clipboard_timer then clipboard_timer:kill() end
+    clipboard_timer = mp.add_timeout(3, function()
+        clipboard_timer = nil
+        mp.osd_message("Failed to read clipboard: no response from `mpv-clipboard`.")
+    end)
+    if not mp.commandv("script-message-to", "clipboard", "get-clipboard", "_pasteTime_impl") then
+        clipboard_timer:kill()
+        clipboard_timer = nil
         mp.osd_message("Failed to read clipboard.\nAre you missing `mpv-clipboard`?")
     end
 end

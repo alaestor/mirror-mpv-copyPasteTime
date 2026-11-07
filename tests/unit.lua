@@ -1,19 +1,25 @@
-local function run(properties, binding)
-    local state = { commands = {}, messages = {}, bindings = {} }
+local function run(properties, binding, dispatch_ok)
+    local state = { commands = {}, messages = {}, bindings = {}, callbacks = {}, timers = {} }
     local mp = {
         get_property_number = function(name) return properties[name] end,
         commandv = function(...)
             state.commands[#state.commands + 1] = { ... }
-            return true
+            return dispatch_ok ~= false
         end,
         osd_message = function(message) state.messages[#state.messages + 1] = message end,
         add_key_binding = function(_, name, callback) state.bindings[name] = callback end,
-        register_script_message = function() end,
+        register_script_message = function(name, callback) state.callbacks[name] = callback end,
+        add_timeout = function(_, callback)
+            local timer = { callback = callback, killed = false }
+            function timer:kill() self.killed = true end
+            state.timers[#state.timers + 1] = timer
+            return timer
+        end,
     }
     _G.mp = mp
     package.loaded.mp = mp
     assert(loadfile("copyPasteTime.lua"))()
-    state.bindings[binding]()
+    if binding then state.bindings[binding]() end
     return state
 end
 
@@ -28,7 +34,7 @@ for _, case in ipairs({
     { 3599.9996, "01:00:00.000" },
 }) do
     local state = run({ ["time-pos"] = case[1] }, "copyTime")
-    equal(state.commands[1][3], case[2])
+    equal(state.commands[1][4], case[2])
 end
 
 for _, case in ipairs({
@@ -41,7 +47,34 @@ for _, case in ipairs({
 
     local available = run({ [case.property] = case.value }, case.binding)
     equal(#available.commands, 1)
-    equal(available.commands[1][1], "script-message")
-    equal(available.commands[1][2], "set-clipboard")
-    equal(available.commands[1][3], case.result)
+    equal(available.commands[1][1], "script-message-to")
+    equal(available.commands[1][2], "clipboard")
+    equal(available.commands[1][3], "set-clipboard")
+    equal(available.commands[1][4], case.result)
 end
+
+local copy = run({ ["time-pos"] = 1 }, "copyTime")
+equal(copy.messages[1], "Clipboard copy requested: 00:00:01.000")
+local failed_copy = run({ ["time-pos"] = 1 }, "copyTime", false)
+assert(failed_copy.messages[1]:find("Failed to copy", 1, true))
+
+local paste = run({}, "pasteTime")
+equal(paste.commands[1][1], "script-message-to")
+equal(paste.commands[1][2], "clipboard")
+equal(paste.commands[1][3], "get-clipboard")
+paste.timers[1].callback()
+assert(paste.messages[1]:find("no response", 1, true))
+
+local responded = run({}, "pasteTime")
+responded.callbacks._pasteTime_impl("12.5")
+equal(responded.timers[1].killed, true)
+equal(responded.commands[2][3], "12.5")
+
+local repeated = run({}, "pasteTime")
+repeated.bindings.pasteTime()
+equal(repeated.timers[1].killed, true)
+equal(repeated.timers[2].killed, false)
+
+local failed_paste = run({}, "pasteTime", false)
+equal(failed_paste.timers[1].killed, true)
+assert(failed_paste.messages[1]:find("Failed to read clipboard", 1, true))
