@@ -22,6 +22,16 @@ local function equal(actual, expected)
 end
 
 for _, case in ipairs({
+    { 0.9994, "00:00:00.999" },
+    { 0.9996, "00:00:01.000" },
+    { 59.9996, "00:01:00.000" },
+    { 3599.9996, "01:00:00.000" },
+}) do
+    local state = run({ ["time-pos"] = case[1] }, "copyTime")
+    equal(state.commands[1][3], case[2])
+end
+
+for _, case in ipairs({
     { binding = "copyTime", property = "time-pos", value = 1.125, result = "00:00:01.125", unavailable = "Current time is unavailable." },
     { binding = "copyFrame", property = "estimated-frame-number", value = 42, result = "42", unavailable = "Estimated frame number is unavailable." },
 }) do

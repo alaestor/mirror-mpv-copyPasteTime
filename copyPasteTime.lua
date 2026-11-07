@@ -8,21 +8,18 @@ local function setClipboard(text)
     end
 end
 
-local function divmod(a, b)
-    return a / b, a % b
-end
-
 local function copyTime()
     local time_pos = mp.get_property_number("time-pos")
     if time_pos == nil then
         mp.osd_message("Current time is unavailable.")
         return
     end
-    local minutes, remainder = divmod(time_pos, 60)
-    local hours, minutes = divmod(minutes, 60)
-    local seconds = math.floor(remainder)
-    local milliseconds = math.floor((remainder - seconds) * 1000 + 0.5)
-    local time = string.format("%02d:%02d:%02d.%03d", math.floor(hours), math.floor(minutes), seconds, milliseconds)
+    local total_ms = math.floor(time_pos * 1000 + 0.5)
+    local milliseconds = total_ms % 1000
+    local seconds = math.floor(total_ms / 1000) % 60
+    local minutes = math.floor(total_ms / 60000) % 60
+    local hours = math.floor(total_ms / 3600000)
+    local time = string.format("%02d:%02d:%02d.%03d", hours, minutes, seconds, milliseconds)
     setClipboard(time)
 end
 
