@@ -50,13 +50,31 @@
           touch "$out"
         '';
         checks.integration = pkgs.runCommand "mpv-copyPasteTime-integration-tests" {
-          nativeBuildInputs = [ pkgs.luajit pkgs.mpv ];
+          nativeBuildInputs = [ pkgs.luajit pkgs.mpv pkgs.ffmpeg ];
         } ''
           cd ${./.}
           luajit tests/long-audio.lua "$TMPDIR/long.wav"
           timeout 15s mpv --no-config --load-scripts=no --osc=no --pause=yes \
             --vo=null --ao=null --input-terminal=no \
             --script=copyPasteTime.lua --script=tests/integration.lua "$TMPDIR/long.wav"
+          ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=black:s=16x16:r=10:d=30 \
+            -c:v ffv1 "$TMPDIR/video.mkv"
+          run_scenario() {
+            mode="$1"
+            shift
+            timeout 15s mpv --no-config --load-scripts=no --osc=no --pause=yes --idle=yes \
+              --vo=null --ao=null --input-terminal=no --script=tests/scenarios.lua \
+              --script-opts="test-mode=$mode" "$@"
+          }
+          run_scenario normal --script=tests/clipboard.lua "$TMPDIR/video.mkv"
+          run_scenario missing "$TMPDIR/video.mkv"
+          run_scenario idle-time --script=tests/clipboard.lua
+          run_scenario idle-frame --script=tests/clipboard.lua
+          run_scenario audio-frame --script=tests/clipboard.lua "$TMPDIR/long.wav"
+          mkdir "$TMPDIR/config"
+          awk '/^(shift\+c|ctrl\+c|ctrl\+v) script-message-to copyPasteTime / { print }' README.md > "$TMPDIR/config/input.conf"
+          test "$(wc -l < "$TMPDIR/config/input.conf")" -eq 3
+          run_scenario input-config --config=yes --config-dir="$TMPDIR/config" --input-conf= --input-default-bindings=no
           touch "$out"
         '';
         packages.mpv-clipboard = clipboard;
