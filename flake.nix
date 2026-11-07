@@ -49,6 +49,16 @@
           luajit tests/unit.lua
           touch "$out"
         '';
+        checks.integration = pkgs.runCommand "mpv-copyPasteTime-integration-tests" {
+          nativeBuildInputs = [ pkgs.luajit pkgs.mpv ];
+        } ''
+          cd ${./.}
+          luajit tests/long-audio.lua "$TMPDIR/long.wav"
+          timeout 15s mpv --no-config --load-scripts=no --osc=no --pause=yes \
+            --vo=null --ao=null --input-terminal=no \
+            --script=copyPasteTime.lua --script=tests/integration.lua "$TMPDIR/long.wav"
+          touch "$out"
+        '';
         packages.mpv-clipboard = clipboard;
         packages.mpv-copyPasteTime = pkgs.stdenvNoCC.mkDerivation {
           pname = "mpv-copyPasteTime";
