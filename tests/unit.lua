@@ -78,3 +78,23 @@ equal(repeated.timers[2].killed, false)
 local failed_paste = run({}, "pasteTime", false)
 equal(failed_paste.timers[1].killed, true)
 assert(failed_paste.messages[1]:find("Failed to read clipboard", 1, true))
+
+for _, text in ipairs({ "01:02:03.004", "02:03", "5", "5.125", "99:59:59.999", "100:00:00.000", "123:45:06.789", "123:45", "1:2:3" }) do
+    local state = run({})
+    state.callbacks._pasteTime_impl(text)
+    equal(state.commands[1][3], text)
+end
+
+for _, text in ipairs({ "", "not a timestamp", "100:00:00:00", "12.3.4", "Episode 2 at 00:12", "-12", "1:234:56" }) do
+    local state = run({})
+    state.callbacks._pasteTime_impl(text)
+    equal(#state.commands, 0)
+end
+
+local whitespace = run({})
+whitespace.callbacks._pasteTime_impl(" \n100:00:00.000\t")
+equal(whitespace.commands[1][3], "100:00:00.000")
+
+local failed_seek = run({}, nil, false)
+failed_seek.callbacks._pasteTime_impl("12.5")
+assert(failed_seek.messages[1]:find("Failed to seek", 1, true))

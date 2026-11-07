@@ -41,12 +41,20 @@ local function _pasteTime_impl(text)
         clipboard_timer:kill()
         clipboard_timer = nil
     end
-    -- this is a callback intended to recieve text from mpv-clipboard's "get-clipboard"
-    timestamp = text:match("%d?%d?:?%d?%d?:?%d?%d%.?%d*")
-    if timestamp ~= nil then
-        mp.osd_message("Timestamp pasted: " .. timestamp)
-        mp.commandv("osd-bar", "seek", timestamp, "absolute")
-    end -- best effort; silent failure
+    local timestamp = text:match("^%s*(.-)%s*$")
+    local valid = timestamp:match("^%d+$")
+        or timestamp:match("^%d+%.%d+$")
+        or timestamp:match("^%d+:%d%d?$")
+        or timestamp:match("^%d+:%d%d?%.%d+$")
+        or timestamp:match("^%d+:%d%d?:%d%d?$")
+        or timestamp:match("^%d+:%d%d?:%d%d?%.%d+$")
+    if valid then
+        if mp.commandv("osd-bar", "seek", timestamp, "absolute") then
+            mp.osd_message("Timestamp pasted: " .. timestamp)
+        else
+            mp.osd_message("Failed to seek to timestamp: " .. timestamp)
+        end
+    end
 end
 
 local function pasteTime()
